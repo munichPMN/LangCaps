@@ -135,7 +135,7 @@ def main():
 
     try:
         while True:
-            if keyboard.is_pressed('ctrl+alt+m'):
+            if keyboard.is_pressed('shift+alt+d'):     
                 print("# =========== SWITCH_LANGUAGE =========== #")
 
                 time.sleep(0.2)
@@ -177,7 +177,7 @@ def main():
 
                 
 
-            elif keyboard.is_pressed('ctrl+alt+n'):
+            elif keyboard.is_pressed('shift+alt+c'):
                 print("# =========== SWITCH_CAPSLOCK =========== #")
 
                 time.sleep(0.2)
@@ -215,11 +215,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-    
