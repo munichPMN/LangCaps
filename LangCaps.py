@@ -1,11 +1,40 @@
 import pyperclip
 import time
 import keyboard
+import os
+import sys
+import threading
+import pystray
+import settings_gui
+from PIL import Image
+
 from LanguageMapping import en_to_th, th_to_en, ambiguous_map
 from CapslockMapping import en_uncapslocked, en_capslocked, th_uncapslocked, th_capslocked, ambiguous_capslock_map
 
-HAS_NUMPAD = True
+# =================== CONSTANTS =================== #
 numpad_keys = set('0123456789/*-+.=')
+LANGUAGE_SWITCH_KEY1 = 'win'
+LANGUAGE_SWITCH_KEY2 = 'space'
+AUTO_SWITCH_LANGUAGE, AUTO_SWITCH_CAPSLOCK = True, True
+is_running = True
+
+# =================== SETTINGS =================== #
+def load_settings():
+    if getattr(sys, 'frozen', False): 
+        config_path = os.path.join(sys._MEIPASS, 'settings.config')
+    else:
+        config_path = 'settings.config'    
+    with open(config_path, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            key, value = line.strip().split('=')
+            if key == 'AUTO_SWITCH_LANGUAGE':
+                AUTO_SWITCH_LANGUAGE = value == 'True'
+            elif key == 'AUTO_SWITCH_CAPSLOCK':
+                AUTO_SWITCH_CAPSLOCK = value == 'True'
+    return AUTO_SWITCH_LANGUAGE, AUTO_SWITCH_CAPSLOCK
+
+AUTO_SWITCH_LANGUAGE, AUTO_SWITCH_CAPSLOCK = load_settings()
 
 # =================== LANGUAGE =================== #
 
@@ -121,26 +150,50 @@ def correct_capslock(input_string):
         i += 1
     return corrected_string
 
+# =================== TRAY ICON =================== #
+def create_tray_icon():
+    if getattr(sys, 'frozen', False): 
+        icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
+    else:
+        icon_path = 'icon.ico'
+
+    image = Image.open(icon_path)
+    menu = (
+        pystray.MenuItem('การตั้งค่า', open_settings),
+
+        pystray.MenuItem('ออก', stop_program)
+    )
+    icon = pystray.Icon("name", image, "LangCaps", menu)
+    icon.run()
+
+def stop_program(icon, item):
+    global is_running
+    is_running = False
+    icon.stop()
+
+def open_settings(icon, item):
+    settings_gui.run_gui()
+
+
 # =================== MAIN FUNCTION =================== #
-
-LANGUAGE_SWITCH_KEY1 = 'win'
-LANGUAGE_SWITCH_KEY2 = 'space'
-AUTO_SWITCH_LANGUAGE = True
-AUTO_SWITCH_CAPSLOCK = True
-
-
 def main():
-    print("Program started... Press Ctrl + C or Ctrl + Z to stop.")
+    print("Program started")
     print("")
 
     try:
-        while True:
-            if keyboard.is_pressed('shift+alt+d'):     
+        while is_running:
+            if keyboard.is_pressed('shift+alt+d'):  
+                AUTO_SWITCH_LANGUAGE, AUTO_SWITCH_CAPSLOCK = load_settings()
                 print("# =========== SWITCH_LANGUAGE =========== #")
 
                 time.sleep(0.2)
                 original_clipboard_content = pyperclip.paste()
                 time.sleep(0.8)
+                keyboard.press('ctrl')
+                keyboard.press('c')
+                keyboard.release('c')
+                keyboard.release('ctrl')
+                
                 keyboard.press('ctrl')
                 keyboard.press('c')
                 keyboard.release('c')
@@ -175,9 +228,8 @@ def main():
                 print("# ======================================= #")
                 print("")
 
-                
-
             elif keyboard.is_pressed('shift+alt+c'):
+                AUTO_SWITCH_LANGUAGE, AUTO_SWITCH_CAPSLOCK = load_settings()
                 print("# =========== SWITCH_CAPSLOCK =========== #")
 
                 time.sleep(0.2)
@@ -211,7 +263,8 @@ def main():
                 print("")
 
     except KeyboardInterrupt:
-        print("Program has been stopped.")
+        exit(0)
 
 if __name__ == '__main__':
-    main()
+    threading.Thread(target=main).start()
+    create_tray_icon()
